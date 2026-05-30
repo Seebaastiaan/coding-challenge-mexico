@@ -13,8 +13,8 @@ export const ENABLE_SANDBOX_TRADING = process.env.ENABLE_SANDBOX_TRADING === "tr
 export const SUPPORTED_EXCHANGES: ExchangeName[] = ["Binance", "Kraken", "OKX", "Bybit", "Coinbase"];
 export const SUPPORTED_PAIRS = ["BTC/USDT", "BTC/USD", "BTC/USDC"] as const;
 
-export const MIN_PROFIT = Number(process.env.MIN_PROFIT ?? 5);
-export const MIN_SCORE = Number(process.env.MIN_SCORE ?? 70);
+export const MIN_PROFIT = Number(process.env.MIN_PROFIT ?? 0.01);
+export const MIN_SCORE = Number(process.env.MIN_SCORE ?? 20);
 export const MIN_VOLUME_BTC = Number(process.env.MIN_VOLUME_BTC ?? 0.001);
 export const MAX_LATENCY_MS = Number(process.env.MAX_LATENCY_MS ?? 1_000);
 export const SIMULATION_VOLUME_BTC = Number(process.env.SIMULATION_VOLUME_BTC ?? 0.01);
