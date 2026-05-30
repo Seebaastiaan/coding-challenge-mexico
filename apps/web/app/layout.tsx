@@ -3,8 +3,8 @@ import { IBM_Plex_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BTC Arbitrage Radar",
-  description: "Real-time BTC/USDT arbitrage radar"
+  title: "Radar de Arbitraje BTC",
+  description: "Radar de arbitraje BTC/USDT en tiempo real"
 };
 
 const bodyFont = IBM_Plex_Sans({
@@ -21,7 +21,7 @@ const displayFont = Instrument_Serif({
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body className={`${bodyFont.variable} ${displayFont.variable}`}>{children}</body>
     </html>
   );

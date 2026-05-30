@@ -60,7 +60,7 @@ export function recordOpportunity(opportunity: Opportunity) {
 
 export function simulateIfEligible(opportunity: Opportunity): Opportunity {
   if (circuitBreakerActive()) {
-    return { ...opportunity, status: "ignored", reason: "Circuit breaker is cooling down" };
+    return { ...opportunity, status: "ignored", reason: "El cortacircuitos sigue en enfriamiento" };
   }
 
   if (opportunity.status !== "detected" || opportunity.score < MIN_SCORE) {
@@ -68,7 +68,7 @@ export function simulateIfEligible(opportunity: Opportunity): Opportunity {
   }
 
   if (!hasSufficientBalance(opportunity)) {
-    return { ...opportunity, status: "ignored", reason: "Insufficient simulated balance" };
+    return { ...opportunity, status: "ignored", reason: "Saldo simulado insuficiente" };
   }
 
   return applySimulatedTrade(opportunity);
@@ -76,7 +76,7 @@ export function simulateIfEligible(opportunity: Opportunity): Opportunity {
 
 export function applySimulatedTrade(opportunity: Opportunity): Opportunity {
   if (!hasSufficientBalance(opportunity)) {
-    return { ...opportunity, status: "ignored", reason: "Insufficient simulated balance" };
+    return { ...opportunity, status: "ignored", reason: "Saldo simulado insuficiente" };
   }
 
   const buyWallet = balances.get(opportunity.buyExchange)!;
@@ -107,7 +107,7 @@ export function applySimulatedTrade(opportunity: Opportunity): Opportunity {
   cumulativePnl += opportunity.netProfit;
   consecutiveLosses = opportunity.netProfit < 0 ? consecutiveLosses + 1 : 0;
   pnlSeries.push({
-    time: new Date().toLocaleTimeString("en-US", { hour12: false }),
+    time: new Date().toLocaleTimeString("es-ES", { hour12: false }),
     pnl: Number(cumulativePnl.toFixed(2))
   });
   pnlSeries.splice(60);
@@ -116,7 +116,7 @@ export function applySimulatedTrade(opportunity: Opportunity): Opportunity {
     pausedUntil = Date.now() + 60_000;
   }
 
-  return { ...opportunity, status: "executed", reason: "Simulated trade executed" };
+  return { ...opportunity, status: "executed", reason: "Operacion simulada ejecutada" };
 }
 
 export function getBalances() {

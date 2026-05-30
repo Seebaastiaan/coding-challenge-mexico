@@ -102,7 +102,7 @@ app.get("/risk/state", (_request, response) => {
 app.post("/risk/kill-switch", (request, response) => {
   const reason = typeof request.body?.reason === "string" && request.body.reason.trim().length
     ? request.body.reason.trim()
-    : "Manual kill switch activation";
+    : "Activacion manual de kill switch";
 
   riskManager.killSwitch(reason);
   response.json({ ok: true, state: riskManager.getState() });
@@ -132,7 +132,7 @@ app.get("/guard/state", (_request, response) => {
 app.post("/guard/alerts", (request, response) => {
   const message = typeof request.body?.message === "string" && request.body.message.trim().length
     ? request.body.message.trim()
-    : "Manual runtime guard alert";
+    : "Alerta manual del guardia de ejecucion";
   runtimeGuard.addManualAlert(message);
   response.json({ ok: true, state: runtimeGuard.getState() });
 });
@@ -155,14 +155,14 @@ app.post("/rollout/stage", (request, response) => {
   if (typeof stage !== "string" || !liveReadiness.listStages().includes(stage as never)) {
     response.status(400).json({
       ok: false,
-      error: "Invalid stage",
+      error: "Etapa invalida",
       availableStages: liveReadiness.listStages()
     });
     return;
   }
 
   const policy = liveReadiness.setStage(stage as ReturnType<typeof liveReadiness.getStage>);
-  runtimeGuard.addManualAlert(`Rollout stage switched to ${policy.stage}`);
+  runtimeGuard.addManualAlert(`La etapa de despliegue cambio a ${policy.stage}`);
   response.json({ ok: true, stage: policy.stage, policy });
 });
 
@@ -270,10 +270,10 @@ async function bootstrapAndListen() {
       kind: "system.health",
       profile: RUNTIME_PROFILE,
       healthy: true,
-      details: "Server startup complete",
+      details: "Inicio del servidor completado",
       atMs: Date.now()
     });
-    console.log(`BTC Arbitrage Radar server listening on http://localhost:${PORT}`);
+    console.log(`Servidor Radar de Arbitraje BTC escuchando en http://localhost:${PORT}`);
 
     const stopMarketStream = createMarketDataStream(
       (snapshots) => {

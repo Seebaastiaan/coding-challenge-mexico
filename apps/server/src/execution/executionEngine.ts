@@ -65,11 +65,11 @@ export function createExecutionEngine(eventBus: EventBus) {
       }
 
       if (!canSimulateWithBalances(opportunity)) {
-        return { ...opportunity, status: "ignored", reason: "Insufficient balances for execution" };
+        return { ...opportunity, status: "ignored", reason: "Saldos insuficientes para ejecutar" };
       }
 
       if (!isExchangeAllowed(opportunity.buyExchange) || !isExchangeAllowed(opportunity.sellExchange)) {
-        return { ...opportunity, status: "ignored", reason: "Exchange degraded by runtime guard" };
+        return { ...opportunity, status: "ignored", reason: "Exchange degradado por el guardia de ejecucion" };
       }
 
       const rolloutReason = isOpportunityAllowed(opportunity);
@@ -128,22 +128,22 @@ export function createExecutionEngine(eventBus: EventBus) {
     await new Promise((resolve) => setTimeout(resolve, simulatedAckDelay));
 
     if (Date.now() - start > executionTimeoutMs) {
-      return { success: false, status: "timeout", message: "Order ack timeout" };
+      return { success: false, status: "timeout", message: "Tiempo de espera agotado para el acuse de orden" };
     }
 
     if (opportunity.netProfit <= 0) {
-      return { success: false, status: "rejected", message: "Opportunity no longer profitable at execution" };
+      return { success: false, status: "rejected", message: "La oportunidad ya no es rentable al ejecutar" };
     }
 
     const fillChance = Math.max(0.2, Math.min(0.98, 0.58 + opportunity.score / 220 + opportunity.edgeScore / 180));
     if (Math.random() > fillChance) {
-      return { success: false, status: "canceled", message: "IOC not filled, canceled by venue" };
+      return { success: false, status: "canceled", message: "IOC no llenada, cancelada por el mercado" };
     }
 
     return {
       success: true,
       status: "filled",
-      message: "IOC filled",
+      message: "IOC llenada",
       exchangeOrderId: `sim-${opportunity.buyExchange.toLowerCase()}-${crypto.randomUUID().slice(0, 8)}`
     };
   }

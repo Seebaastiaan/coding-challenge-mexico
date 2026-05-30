@@ -106,35 +106,35 @@ export function createRiskManager() {
     cleanup(now);
 
     if (killSwitchActive) {
-      return { approved: false, reason: killSwitchReason ?? "Kill switch active" };
+      return { approved: false, reason: killSwitchReason ?? "Kill switch activa" };
     }
 
     if (recentOrderIds.has(input.opportunity.id)) {
-      return { approved: false, reason: "Duplicate execution intent in dedupe window" };
+      return { approved: false, reason: "Intento de ejecucion duplicado en ventana de deduplicacion" };
     }
 
     if (!input.executionAllowed) {
-      return { approved: false, reason: "Execution mode is not enabled" };
+      return { approved: false, reason: "El modo de ejecucion no esta habilitado" };
     }
 
     const notional = input.opportunity.buyPrice * input.opportunity.volume;
     if (notional > MAX_LIVE_NOTIONAL_USDT) {
-      return { approved: false, reason: `Notional ${notional.toFixed(2)} exceeds max ${MAX_LIVE_NOTIONAL_USDT}` };
+      return { approved: false, reason: `El nocional ${notional.toFixed(2)} supera el maximo ${MAX_LIVE_NOTIONAL_USDT}` };
     }
 
     if (tradeTimestamps.length >= MAX_TRADES_PER_MINUTE) {
-      return { approved: false, reason: `Trades-per-minute limit reached (${MAX_TRADES_PER_MINUTE})` };
+      return { approved: false, reason: `Se alcanzo el limite de operaciones por minuto (${MAX_TRADES_PER_MINUTE})` };
     }
 
     inventorySkewRatio = evaluateInventorySkew(input.balances);
     if (inventorySkewRatio > MAX_INVENTORY_SKEW_RATIO) {
-      killSwitch(`Inventory skew ratio ${inventorySkewRatio} exceeded ${MAX_INVENTORY_SKEW_RATIO}`);
-      return { approved: false, reason: killSwitchReason ?? "Inventory skew limit breached" };
+      killSwitch(`La desviacion de inventario ${inventorySkewRatio} supero ${MAX_INVENTORY_SKEW_RATIO}`);
+      return { approved: false, reason: killSwitchReason ?? "Se supero el limite de desviacion de inventario" };
     }
 
     recentOrderIds.set(input.opportunity.id, now);
     lastUpdatedAt = new Date().toISOString();
-    return { approved: true, reason: "Risk checks passed" };
+    return { approved: true, reason: "Controles de riesgo superados" };
   }
 
   function onExecutionResult(input: {
@@ -158,15 +158,15 @@ export function createRiskManager() {
     inventorySkewRatio = evaluateInventorySkew(input.balances);
 
     if (lossStreak >= MAX_RISK_CONSECUTIVE_LOSSES) {
-      killSwitch(`Loss streak ${lossStreak} reached limit ${MAX_RISK_CONSECUTIVE_LOSSES}`);
+      killSwitch(`La racha de perdidas ${lossStreak} alcanzo el limite ${MAX_RISK_CONSECUTIVE_LOSSES}`);
     }
 
     if (currentDrawdown >= MAX_RISK_DRAWDOWN_USDT) {
-      killSwitch(`Drawdown ${currentDrawdown.toFixed(2)} reached limit ${MAX_RISK_DRAWDOWN_USDT}`);
+      killSwitch(`El drawdown ${currentDrawdown.toFixed(2)} alcanzo el limite ${MAX_RISK_DRAWDOWN_USDT}`);
     }
 
     if (inventorySkewRatio > MAX_INVENTORY_SKEW_RATIO) {
-      killSwitch(`Inventory skew ratio ${inventorySkewRatio} exceeded ${MAX_INVENTORY_SKEW_RATIO}`);
+      killSwitch(`La desviacion de inventario ${inventorySkewRatio} supero ${MAX_INVENTORY_SKEW_RATIO}`);
     }
 
     lastUpdatedAt = new Date().toISOString();

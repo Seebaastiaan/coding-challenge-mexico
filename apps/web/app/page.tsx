@@ -190,15 +190,16 @@ const emptyState: RadarState = {
 };
 
 function money(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  const formatted = new Intl.NumberFormat("es-ES", {
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
+
+  return `$${formatted}`;
 }
 
 function number(value: number, digits = 4) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("es-ES", {
     maximumFractionDigits: digits,
   }).format(value);
 }
@@ -210,7 +211,7 @@ function pct(value: number) {
 function time(value: string | number) {
   if (!value) return "--:--:--";
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("es-ES", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
@@ -223,19 +224,19 @@ function statusClass(status: OpportunityStatus) {
 
 function statusLabel(status: OpportunityStatus) {
   const labels: Record<OpportunityStatus, string> = {
-    detected: "Detected",
-    executed: "Executed",
-    ignored: "Skipped",
-    observed: "Watching",
+    detected: "Detectada",
+    executed: "Ejecutada",
+    ignored: "Omitida",
+    observed: "En observacion",
   };
 
   return labels[status];
 }
 
 function scoreLabel(score: number) {
-  if (score >= 80) return "Strong";
-  if (score >= 50) return "Watch";
-  return "Weak";
+  if (score >= 80) return "Fuerte";
+  if (score >= 50) return "Vigilar";
+  return "Debil";
 }
 
 function decisionTone(opportunity?: Opportunity) {
@@ -249,51 +250,51 @@ function decisionTone(opportunity?: Opportunity) {
 function decisionCopy(opportunity?: Opportunity) {
   if (!opportunity) {
     return {
-      eyebrow: "Waiting for data",
-      title: "No trade yet",
+      eyebrow: "Esperando datos",
+      title: "Aun no hay operacion",
       detail:
-        "The engine needs a visible price gap before it can compare risk and profit.",
+        "El motor necesita una brecha de precio visible antes de comparar riesgo y ganancia.",
     };
   }
 
   if (opportunity.status === "executed") {
     return {
-      eyebrow: "Trade executed",
-      title: "Passed every safety check",
+      eyebrow: "Operacion ejecutada",
+      title: "Supero todos los controles de seguridad",
       detail:
-        "The spread survived fees, slippage, latency, liquidity, and score thresholds.",
+        "El spread supero comisiones, slippage, latencia, liquidez y umbrales de puntaje.",
     };
   }
 
   if (opportunity.status === "detected") {
     return {
-      eyebrow: "Opportunity detected",
-      title: "Possible trade found",
+      eyebrow: "Oportunidad detectada",
+      title: "Se encontro una operacion posible",
       detail:
-        "The bot found a route and is validating whether the profit still exists after risk costs.",
+        "El bot encontro una ruta y valida si la ganancia sigue existiendo tras costos de riesgo.",
     };
   }
 
   if (opportunity.status === "observed") {
     return {
-      eyebrow: "Watch only",
-      title: "Interesting, not clean enough",
+      eyebrow: "Solo observar",
+      title: "Interesante, pero no lo bastante limpia",
       detail:
-        "The spread is visible, but the engine is still waiting for a stronger setup.",
+        "El spread es visible, pero el motor sigue esperando una configuracion mas fuerte.",
     };
   }
 
   return {
-    eyebrow: "Trade skipped",
-    title: "Blocked by risk controls",
+    eyebrow: "Operacion omitida",
+    title: "Bloqueada por controles de riesgo",
     detail:
-      "The visible spread was not enough after costs and risk were subtracted.",
+      "El spread visible no fue suficiente despues de restar costos y riesgo.",
   };
 }
 
 function ageLabel(timestamp: number) {
   const age = Math.max(0, Date.now() - timestamp);
-  if (age < 1000) return "fresh";
+  if (age < 1000) return "reciente";
   return `${number(age, 0)} ms`;
 }
 
@@ -380,7 +381,7 @@ export default function DashboardPage() {
         if (active) {
           setConnected(false);
           setLastError(
-            error instanceof Error ? error.message : "Unable to load state",
+            error instanceof Error ? error.message : "No se pudo cargar el estado",
           );
         }
       }
@@ -450,9 +451,9 @@ export default function DashboardPage() {
 
       return {
         data,
-        label: "Recent cumulative profit",
-        kicker: "Recent spread result",
-        badge: `${recentTrades.length} trades, ${money(runningPnl)}`,
+        label: "Ganancia acumulada reciente",
+        kicker: "Resultado reciente de spread",
+        badge: `${recentTrades.length} operaciones, ${money(runningPnl)}`,
       };
     }
 
@@ -465,9 +466,9 @@ export default function DashboardPage() {
             time: time(opportunity.createdAt),
             value: Number(opportunity.netProfit.toFixed(2)),
           })),
-        label: "Estimated profit",
-        kicker: "Signal estimates",
-        badge: "No generated trades yet",
+        label: "Ganancia estimada",
+        kicker: "Estimaciones de senales",
+        badge: "Aun no hay operaciones generadas",
       };
     }
 
@@ -476,9 +477,9 @@ export default function DashboardPage() {
         { time: "--:--", value: 0 },
         { time: "--:--", value: 0 },
       ],
-      label: "P&L",
-      kicker: "Waiting for data",
-      badge: "No chart data",
+      label: "PyG",
+      kicker: "Esperando datos",
+      badge: "Sin datos para la grafica",
     };
   }, [
     state.metrics.pnlSeries,
@@ -533,14 +534,14 @@ export default function DashboardPage() {
     ? [
         {
           icon: <Coins size={18} aria-hidden />,
-          label: "Net profit",
+          label: "Ganancia neta",
           value: money(bestOpportunity.netProfit),
-          note: "Target is at least $5.00 after costs",
+          note: "Objetivo: al menos $5.00 despues de costos",
           state: bestOpportunity.netProfit >= 5 ? "pass" : "fail",
         },
         {
           icon: <ShieldAlert size={18} aria-hidden />,
-          label: "Risk score",
+          label: "Puntaje de riesgo",
           value: `${bestOpportunity.score}/100`,
           note: `${scoreLabel(bestOpportunity.score)} signal quality`,
           state:
@@ -554,7 +555,7 @@ export default function DashboardPage() {
           icon: <Waves size={18} aria-hidden />,
           label: "Slippage",
           value: money(bestOpportunity.slippage),
-          note: "Estimated price movement while filling",
+          note: "Movimiento de precio estimado al ejecutar",
           state:
             bestOpportunity.slippage <=
             Math.max(0.05, bestOpportunity.grossProfit * 0.35)
@@ -563,23 +564,23 @@ export default function DashboardPage() {
         },
         {
           icon: <Clock3 size={18} aria-hidden />,
-          label: "Latency",
+          label: "Latencia",
           value: `${number(bestOpportunity.latencyMs, 0)} ms`,
-          note: "Lower is safer because spreads disappear fast",
+          note: "Mas baja es mas segura porque los spreads desaparecen rapido",
           state: bestOpportunity.latencyMs <= 1000 ? "pass" : "fail",
         },
         {
           icon: <TrendingUp size={18} aria-hidden />,
-          label: "Liquidity",
+          label: "Liquidez",
           value: `${number(availableLiquidity)} BTC`,
-          note: `Needs ${number(bestOpportunity.volume)} BTC available to buy`,
+          note: `Necesita ${number(bestOpportunity.volume)} BTC disponibles para comprar`,
           state: availableLiquidity >= bestOpportunity.volume ? "pass" : "fail",
         },
       ]
     : [];
   const walletButtonLabel = selectedWallet
-    ? `Connected to ${selectedWallet.name} simulated wallet`
-    : "Open simulated wallet connection modal";
+    ? `Conectada a la cartera simulada ${selectedWallet.name}`
+    : "Abrir modal de conexion de cartera simulada";
 
   return (
     <main className="shell">
@@ -588,24 +589,24 @@ export default function DashboardPage() {
           <div>
             <span className="brand-mark">
               <Radar size={18} aria-hidden />
-              BTC Arbitrage Radar
+              Radar de Arbitraje BTC
             </span>
-            <h1>Arbitrage command center</h1>
+            <h1>Centro de mando de arbitraje</h1>
           </div>
-          <div className="hero-status" aria-label="Dashboard status">
+          <div className="hero-status" aria-label="Estado del panel">
             <span
               className={connected ? "connection online" : "connection offline"}
             >
               <Activity size={16} aria-hidden />
-              {connected ? "Live feed" : "Offline feed"}
+              {connected ? "Flujo en vivo" : "Flujo sin conexion"}
             </span>
             <span className="timestamp">
               <RefreshCcw size={15} aria-hidden />
-              Updated {time(state.updatedAt)}
+              Actualizado {time(state.updatedAt)}
             </span>
             <span className="connection online">
               <CircleDollarSign size={16} aria-hidden />
-              Profit {money(state.metrics.totalProfitGenerated)}
+              Ganancia {money(state.metrics.totalProfitGenerated)}
             </span>
             <button
               aria-label={walletButtonLabel}
@@ -622,18 +623,18 @@ export default function DashboardPage() {
                 )}
               </span>
               <span className="wallet-launcher-copy">
-                <strong>
-                  {selectedWallet ? selectedWallet.name : "Connect Wallet"}
+                  <strong>
+                  {selectedWallet ? selectedWallet.name : "Conectar cartera"}
                 </strong>
                 {selectedWallet ? <em>{selectedWallet.address}</em> : null}
               </span>
-              <small>Demo</small>
+              <small>Demostracion</small>
             </button>
             <span
               className={paused ? "connection offline" : "connection ready"}
             >
               <ShieldCheck size={16} aria-hidden />
-              {paused ? "Risk pause" : "Ready"}
+              {paused ? "Pausa de riesgo" : "Lista"}
             </span>
           </div>
         </header>
@@ -652,11 +653,11 @@ export default function DashboardPage() {
             >
               <div className="wallet-modal-head">
                 <div>
-                  <span className="kicker">Simulated wallet access</span>
-                  <h2 id="wallet-modal-title">Connect a wallet</h2>
+                  <span className="kicker">Acceso a cartera simulada</span>
+                  <h2 id="wallet-modal-title">Conectar una cartera</h2>
                 </div>
                 <button
-                  aria-label="Close wallet connection modal"
+                  aria-label="Cerrar modal de conexion de cartera"
                   className="wallet-close"
                   onClick={() => setWalletModalOpen(false)}
                   type="button"
@@ -670,13 +671,13 @@ export default function DashboardPage() {
                 <div>
                   <strong>
                     {selectedWallet
-                      ? `${selectedWallet.name} connected`
-                      : "Choose your wallet"}
+                      ? `${selectedWallet.name} conectada`
+                      : "Elige tu cartera"}
                   </strong>
                   <span>
                     {selectedWallet
-                      ? `${selectedWallet.address} on ${selectedWallet.network}`
-                      : "This is a simulated connection flow for the dashboard demo."}
+                      ? `${selectedWallet.address} en ${selectedWallet.network}`
+                      : "Este es un flujo de conexion simulado para la demostracion del panel."}
                   </span>
                 </div>
               </div>
@@ -718,7 +719,7 @@ export default function DashboardPage() {
                         ) : isConnected ? (
                           <CheckCircle2 size={18} aria-hidden />
                         ) : (
-                          "Connect"
+                          "Conectar"
                         )}
                       </span>
                     </button>
@@ -733,14 +734,14 @@ export default function DashboardPage() {
                   onClick={disconnectWallet}
                   type="button"
                 >
-                  Disconnect
+                  Desconectar
                 </button>
                 <button
                   className="wallet-primary-action"
                   onClick={() => setWalletModalOpen(false)}
                   type="button"
                 >
-                  Done
+                  Listo
                 </button>
               </div>
             </div>
@@ -750,7 +751,7 @@ export default function DashboardPage() {
         {lastError ? (
           <div className="notice">
             <CircleAlert size={18} aria-hidden />
-            <span>Server connection: {lastError}</span>
+            <span>Conexion del servidor: {lastError}</span>
           </div>
         ) : null}
 
@@ -773,7 +774,7 @@ export default function DashboardPage() {
             <p>{decision.detail}</p>
             <div className="ops-result">
               <span>
-                {tone === "skip" ? "Blocked profit" : "Route profit"}
+                  {tone === "skip" ? "Ganancia bloqueada" : "Ganancia de ruta"}
               </span>
               <strong
                 className={
@@ -788,7 +789,7 @@ export default function DashboardPage() {
             </div>
             <div className="ops-signal-meta">
               <div>
-                <span>Quality</span>
+                <span>Calidad</span>
                 <strong>{bestOpportunity?.score ?? 0}/100</strong>
               </div>
               <div>
@@ -798,8 +799,8 @@ export default function DashboardPage() {
                 </strong>
               </div>
               <div>
-                <span>Source</span>
-                <strong>{hasFallback ? "Mixed" : "Live"}</strong>
+                <span>Fuente</span>
+                <strong>{hasFallback ? "Mixta" : "En vivo"}</strong>
               </div>
             </div>
           </aside>
@@ -807,34 +808,34 @@ export default function DashboardPage() {
           <section className="ops-card ops-route">
             <div className="section-title">
               <div>
-                <span className="kicker">Current route</span>
+                <span className="kicker">Ruta actual</span>
                 <h2>
                   {bestOpportunity
                     ? `${bestOpportunity.buyExchange} -> ${bestOpportunity.sellExchange}`
-                    : "Waiting for route"}
+                    : "Esperando ruta"}
                 </h2>
               </div>
               <span>
-                {bestOpportunity ? scoreLabel(bestOpportunity.score) : "Idle"}
+                {bestOpportunity ? scoreLabel(bestOpportunity.score) : "Inactiva"}
               </span>
             </div>
             {bestOpportunity ? (
               <div className="route-board compact">
                 <div className="route-step buy-step">
-                  <span>Buy</span>
+                  <span>Compra</span>
                   <strong>{bestOpportunity.buyExchange}</strong>
                   <small>{money(bestOpportunity.buyPrice)}</small>
                 </div>
                 <ArrowRight size={22} aria-hidden />
                 <div className="route-step sell-step">
-                  <span>Sell</span>
+                  <span>Venta</span>
                   <strong>{bestOpportunity.sellExchange}</strong>
                   <small>{money(bestOpportunity.sellPrice)}</small>
                 </div>
               </div>
             ) : (
               <div className="empty-state compact">
-                Waiting for exchange prices.
+                Esperando precios de exchanges.
               </div>
             )}
 
@@ -888,10 +889,10 @@ export default function DashboardPage() {
           <section className="ops-card ops-market">
             <div className="section-title">
               <div>
-                <span className="kicker">Exchange prices</span>
-                <h2>BTC board</h2>
+                <span className="kicker">Precios de exchanges</span>
+                <h2>Panel BTC</h2>
               </div>
-              <span>{hasFallback ? "Mixed" : "Live"}</span>
+              <span>{hasFallback ? "Mixta" : "En vivo"}</span>
             </div>
             <div className="market-list compact">
               {exchangePriceRows.map(({ exchange, market, balance }) => (
@@ -906,7 +907,7 @@ export default function DashboardPage() {
                         ? market.source === "fallback"
                           ? "fallback"
                           : "ticker"
-                        : "not streaming"}
+                        : "sin flujo"}
                     </span>
                   </div>
                   <dl>
@@ -919,7 +920,7 @@ export default function DashboardPage() {
                       <dd>{market ? money(market.bestAsk) : "--"}</dd>
                     </div>
                     <div>
-                      <dt>{market ? "Age" : "USDT"}</dt>
+                      <dt>{market ? "Edad" : "USDT"}</dt>
                       <dd>
                         {market
                           ? ageLabel(market.timestamp)
@@ -938,32 +939,32 @@ export default function DashboardPage() {
         <section className="metrics-grid ops-metrics">
           <StatTile
             icon={<CircleDollarSign size={22} aria-hidden />}
-            label="Total profit generated"
+            label="Ganancia total generada"
             value={money(state.metrics.totalProfitGenerated)}
-            caption={`Average trade ${money(state.metrics.averageProfit)}`}
+            caption={`Promedio por operacion ${money(state.metrics.averageProfit)}`}
             tone={state.metrics.totalProfitGenerated >= 0 ? "good" : "bad"}
           />
           <StatTile
             icon={<Gauge size={22} aria-hidden />}
-            label="Price gaps found"
+            label="Brechas de precio encontradas"
             value={number(state.metrics.opportunitiesDetected, 0)}
             caption={
               marketSpread
-                ? `${marketSpread.buy} to ${marketSpread.sell}`
-                : "Waiting for exchanges"
+                ? `${marketSpread.buy} a ${marketSpread.sell}`
+                : "Esperando exchanges"
             }
           />
           <StatTile
             icon={<WalletCards size={22} aria-hidden />}
-            label="Trades generated"
+            label="Operaciones generadas"
             value={number(state.metrics.tradesGenerated, 0)}
-            caption={`Best result ${money(state.metrics.bestTrade)}`}
+            caption={`Mejor resultado ${money(state.metrics.bestTrade)}`}
           />
           <StatTile
             icon={<PauseCircle size={22} aria-hidden />}
-            label="Win rate"
+            label="Tasa de acierto"
             value={pct(state.metrics.winRate)}
-            caption={`${state.metrics.consecutiveLosses} recent losses`}
+            caption={`${state.metrics.consecutiveLosses} perdidas recientes`}
             tone={state.metrics.winRate >= 60 ? "good" : "warn"}
           />
         </section>
@@ -976,8 +977,8 @@ export default function DashboardPage() {
         <div className="route-panel">
           <div className="section-title">
             <div>
-              <span className="kicker">Route history</span>
-              <h2>Recent route decisions</h2>
+               <span className="kicker">Historial de rutas</span>
+               <h2>Decisiones recientes de ruta</h2>
             </div>
             <span>{routeHistory.length}</span>
           </div>
@@ -1010,20 +1011,20 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            <div className="empty-state compact">No route history yet.</div>
+            <div className="empty-state compact">Aun no hay historial de rutas.</div>
           )}
         </div>
 
         <div className="safety-panel">
           <div className="section-title">
             <div>
-              <span className="kicker">Decision checks</span>
-              <h2>Why it happened</h2>
-            </div>
-            <span>
-              {bestOpportunity ? statusLabel(bestOpportunity.status) : "Idle"}
-            </span>
-          </div>
+               <span className="kicker">Validaciones de decision</span>
+               <h2>Por que ocurrio</h2>
+             </div>
+             <span>
+               {bestOpportunity ? statusLabel(bestOpportunity.status) : "Inactiva"}
+             </span>
+           </div>
           {bestOpportunity ? (
             <div className="safety-list">
               {safetyChecks.map((check) => (
@@ -1040,25 +1041,25 @@ export default function DashboardPage() {
                 </article>
               ))}
               <article className="reason-card">
-                <span>Main reason</span>
-                <strong>{bestOpportunity.reason}</strong>
-              </article>
-            </div>
-          ) : (
-            <div className="empty-state compact">No active opportunity.</div>
-          )}
-        </div>
+                 <span>Motivo principal</span>
+                 <strong>{bestOpportunity.reason}</strong>
+               </article>
+             </div>
+           ) : (
+             <div className="empty-state compact">No hay oportunidad activa.</div>
+           )}
+         </div>
       </section>
 
       <section className="insight-grid secondary">
         <div className="balances-panel">
           <div className="section-title">
             <div>
-              <span className="kicker">Exchange ledger</span>
-              <h2>Balances</h2>
-            </div>
-            <span>Live ledger</span>
-          </div>
+               <span className="kicker">Libro de exchanges</span>
+               <h2>Saldos</h2>
+             </div>
+             <span>Libro en vivo</span>
+           </div>
           <div className="balance-list">
             {state.balances.map((balance) => (
               <div className="balance-row" key={balance.exchange}>
@@ -1079,28 +1080,28 @@ export default function DashboardPage() {
               </div>
             ))}
             {!state.balances.length ? (
-              <div className="empty-state compact">Waiting for balances</div>
-            ) : null}
-          </div>
-        </div>
+               <div className="empty-state compact">Esperando saldos</div>
+             ) : null}
+           </div>
+         </div>
 
         <div className="table-panel">
           <div className="section-title">
             <div>
-              <span className="kicker">Recent checks</span>
-              <h2>Arbitrage opportunities</h2>
-            </div>
-            <span>{state.opportunities.length}</span>
-          </div>
+               <span className="kicker">Validaciones recientes</span>
+               <h2>Oportunidades de arbitraje</h2>
+             </div>
+             <span>{state.opportunities.length}</span>
+           </div>
           <div className="table-wrap tall">
             <table>
               <thead>
                 <tr>
-                  <th>Buy</th>
-                  <th>Sell</th>
-                  <th>Profit</th>
-                  <th>Score</th>
-                  <th>Status</th>
+                   <th>Compra</th>
+                   <th>Venta</th>
+                   <th>Ganancia</th>
+                   <th>Puntaje</th>
+                   <th>Estado</th>
                 </tr>
               </thead>
               <tbody>
@@ -1126,10 +1127,10 @@ export default function DashboardPage() {
                 {!state.opportunities.length ? (
                   <tr>
                     <td colSpan={5} className="empty-cell">
-                      No opportunities detected
-                    </td>
-                  </tr>
-                ) : null}
+                       No se detectaron oportunidades
+                     </td>
+                   </tr>
+                 ) : null}
               </tbody>
             </table>
           </div>
@@ -1139,19 +1140,19 @@ export default function DashboardPage() {
       <section className="table-panel final-table">
         <div className="section-title">
           <div>
-            <span className="kicker">Generated executions</span>
-            <h2>Trade ledger</h2>
-          </div>
-          <span>Best {money(state.metrics.bestTrade)}</span>
-        </div>
+             <span className="kicker">Ejecuciones generadas</span>
+             <h2>Libro de operaciones</h2>
+           </div>
+           <span>Mejor {money(state.metrics.bestTrade)}</span>
+         </div>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Time</th>
-                <th>Route</th>
-                <th>Volume</th>
-                <th>Profit</th>
+                 <th>Hora</th>
+                 <th>Ruta</th>
+                 <th>Volumen</th>
+                 <th>Ganancia</th>
               </tr>
             </thead>
             <tbody>
@@ -1172,10 +1173,10 @@ export default function DashboardPage() {
               {!state.trades.length ? (
                 <tr>
                   <td colSpan={4} className="empty-cell">
-                    No generated trades yet
-                  </td>
-                </tr>
-              ) : null}
+                     Aun no hay operaciones generadas
+                   </td>
+                 </tr>
+               ) : null}
             </tbody>
           </table>
         </div>

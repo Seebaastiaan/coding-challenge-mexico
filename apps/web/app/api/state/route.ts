@@ -14,12 +14,12 @@ export async function GET() {
     });
   } catch (error) {
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unable to build serverless radar state"
-      },
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "No se pudo construir el estado del radar serverless"
+        },
       { status: 500 }
     );
   }

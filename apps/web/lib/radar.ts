@@ -380,26 +380,26 @@ function classify(input: {
   slippage: number;
 }): { status: OpportunityStatus; reason: string } {
   if (input.netProfit <= MIN_PROFIT) {
-    return { status: "ignored", reason: `Net profit below ${MIN_PROFIT} USDT` };
+    return { status: "ignored", reason: `Ganancia neta por debajo de ${MIN_PROFIT} USDT` };
   }
 
   if (input.score < MIN_SCORE) {
-    return { status: "observed", reason: `Score below ${MIN_SCORE}` };
+    return { status: "observed", reason: `Puntaje por debajo de ${MIN_SCORE}` };
   }
 
   if (input.minAvailableVolume < Math.max(input.volume, MIN_VOLUME_BTC)) {
-    return { status: "ignored", reason: "Insufficient visible liquidity" };
+    return { status: "ignored", reason: "Liquidez visible insuficiente" };
   }
 
   if (input.latencyMs > MAX_LATENCY_MS) {
-    return { status: "ignored", reason: `Latency above ${MAX_LATENCY_MS}ms` };
+    return { status: "ignored", reason: `Latencia por encima de ${MAX_LATENCY_MS} ms` };
   }
 
   if (input.slippage >= input.netProfit) {
-    return { status: "ignored", reason: "Slippage exceeds profit" };
+    return { status: "ignored", reason: "El deslizamiento supera la ganancia" };
   }
 
-  return { status: "detected", reason: "Eligible for execution" };
+  return { status: "detected", reason: "Elegible para ejecucion" };
 }
 
 function edgeScore(input: {
@@ -531,11 +531,11 @@ function generateTrades(opportunities: Opportunity[], balances: WalletBalance[])
 
     const buyCost = opportunity.buyPrice * opportunity.volume;
     if (buyWallet.USDT < buyCost || sellWallet.BTC < opportunity.volume) {
-      return {
-        ...opportunity,
-        status: "ignored" as const,
-        reason: "Insufficient available balance",
-      };
+        return {
+          ...opportunity,
+          status: "ignored" as const,
+          reason: "Saldo disponible insuficiente",
+        };
     }
 
     buyWallet.USDT -= buyCost;
@@ -558,7 +558,7 @@ function generateTrades(opportunities: Opportunity[], balances: WalletBalance[])
     return {
       ...opportunity,
       status: "executed" as const,
-      reason: "Trade executed by route engine",
+      reason: "Operacion ejecutada por el motor de rutas",
     };
   });
 
@@ -599,7 +599,7 @@ function buildMetrics(opportunities: Opportunity[], trades: Trade[]) {
       .reduce<Array<{ time: string; pnl: number }>>((series, trade) => {
         const previous = series.at(-1)?.pnl ?? 0;
         series.push({
-          time: new Date(trade.executedAt).toLocaleTimeString("en-US", {
+          time: new Date(trade.executedAt).toLocaleTimeString("es-ES", {
             hour12: false,
           }),
           pnl: Number((previous + trade.netProfit).toFixed(2)),
