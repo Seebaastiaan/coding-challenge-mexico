@@ -1,21 +1,12 @@
 import { NextResponse } from "next/server";
+import { getServerlessRadarState } from "@/lib/radar";
 
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:4000";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    const response = await fetch(`${SERVER_URL}/state`, {
-      cache: "no-store"
-    });
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: `Radar server returned ${response.status}` },
-        { status: response.status }
-      );
-    }
-
-    const state = await response.json();
+    const state = await getServerlessRadarState();
     return NextResponse.json(state, {
       headers: {
         "Cache-Control": "no-store"
@@ -23,8 +14,13 @@ export async function GET() {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to reach radar server" },
-      { status: 502 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to build serverless radar state"
+      },
+      { status: 500 }
     );
   }
 }

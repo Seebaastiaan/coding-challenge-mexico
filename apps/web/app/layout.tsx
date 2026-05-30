@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "BTC Arbitrage Radar",
-  description: "Real-time BTC/USDT arbitrage simulator"
+  description: "Real-time BTC/USDT arbitrage radar"
 };
 
 const bodyFont = IBM_Plex_Sans({

@@ -1,267 +1,281 @@
-# BTC Arbitrage Radar
+<a id="readme-top"></a>
 
-BTC Arbitrage Radar is a two-app monorepo for monitoring BTC arbitrage opportunities in real time, scoring them with risk and execution logic, simulating trades against internal balances, and rendering the result in a live dashboard.
+[![Next.js][Next.js]][Next-url]
+[![React][React.js]][React-url]
+[![TypeScript][TypeScript]][TypeScript-url]
+[![Vercel][Vercel]][Vercel-url]
 
-It is designed as a paper-first system. The server exposes rollout, risk, telemetry, replay, and state endpoints, while the web app renders the operator view for market snapshots, opportunities, trades, balances, and performance.
+<br />
+<div align="center">
+  <h3 align="center">BTC Arbitrage Radar</h3>
 
-## At a Glance
+  <p align="center">
+    Dashboard serverless para monitorear oportunidades de arbitraje de BTC entre exchanges públicos.
+    <br />
+    <a href="#getting-started"><strong>Ver instalación »</strong></a>
+    <br />
+    <br />
+    <a href="#screenshots">Capturas</a>
+    ·
+    <a href="#usage">Uso</a>
+    ·
+    <a href="#deployment">Deploy en Vercel</a>
+  </p>
+</div>
 
-| Area | Purpose |
-| --- | --- |
-| `apps/server` | Express + Socket.IO backend that ingests exchange prices, detects opportunities, applies risk checks, simulates execution, and persists event history |
-| `apps/web` | Next.js dashboard that consumes `/state` and the Socket.IO feed to show the trading cockpit |
-| Data flow | Exchange snapshot -> opportunity engine -> risk gate -> execution engine -> simulator -> dashboard |
-| Storage | JSONL event and snapshot logs under `apps/server/data` |
+## Table of Contents
 
-## Project Layout
+1. [About The Project](#about-the-project)
+2. [Built With](#built-with)
+3. [Screenshots](#screenshots)
+4. [Getting Started](#getting-started)
+5. [Usage](#usage)
+6. [Project Structure](#project-structure)
+7. [Deployment](#deployment)
+8. [Roadmap](#roadmap)
+9. [Contributing](#contributing)
+10. [License](#license)
+11. [Acknowledgments](#acknowledgments)
 
-```text
-.
-├── apps
-│   ├── server
-│   │   ├── src
-│   │   │   ├── config.ts
-│   │   │   ├── core
-│   │   │   ├── engine
-│   │   │   ├── execution
-│   │   │   ├── exchanges
-│   │   │   ├── guard
-│   │   │   ├── persistence
-│   │   │   ├── risk
-│   │   │   ├── rollout
-│   │   │   ├── simulator
-│   │   │   ├── telemetry
-│   │   │   └── types.ts
-│   │   └── data
-│   └── web
-│       └── app
-│           ├── api
-│           ├── globals.css
-│           ├── layout.tsx
-│           └── page.tsx
-├── package.json
-├── package-lock.json
-└── tsconfig.base.json
-```
+## About The Project
 
-## Architecture
+[![BTC Arbitrage Radar Screen Shot][product-screenshot]](docs/screenshots/dashboard-desktop.png)
 
-```mermaid
-flowchart LR
-  A[Exchange connectors] --> B[Market data stream]
-  B --> C[Opportunity engine]
-  C --> D[Risk manager]
-  D --> E[Execution engine]
-  E --> F[Simulator + balances]
-  F --> G[Telemetry + persistence]
-  G --> H[Express /state + Socket.IO]
-  H --> I[Next.js dashboard]
-```
+BTC Arbitrage Radar es una aplicación Next.js lista para desplegarse en Vercel. Permite visualizar precios de BTC, detectar rutas de compra/venta entre exchanges, puntuar oportunidades por spread, liquidez y latencia, y mostrar el profit generado desde un dashboard operacional.
 
-The backend continuously collects order-book snapshots from supported exchanges, compares buy and sell routes, and ranks opportunities by spread, liquidity, latency, and slippage. If a candidate passes risk checks, the execution layer runs a simulated IOC lifecycle and updates balances, trade history, and PnL. The web app subscribes to the resulting state and presents it as an operations dashboard.
+El proyecto ya no requiere un backend persistente. La lógica activa vive en rutas serverless de Next.js bajo `apps/web/app/api`, y el dashboard consume únicamente endpoints relativos como `/api/state`, `/api/health` y `/api/metrics`.
 
-## Technology Stack
+Características principales:
 
-### Backend
-- Node.js
-- Express 5
-- Socket.IO
-- TypeScript
-- Public exchange REST and websocket APIs
+- Monitoreo de Binance, Kraken, OKX, Bybit y Coinbase.
+- Detección de oportunidades de arbitraje BTC/USDT.
+- Registro de ejecuciones generadas sin API keys privadas.
+- Métricas de profit generado, win rate, balances y rutas recientes.
+- Fallbacks de mercado cuando un exchange público no responde.
+- Deploy compatible con Vercel sin Express, Socket.IO ni proceso long-running.
 
-### Frontend
-- Next.js 16
-- React 19
-- TypeScript
-- Recharts
-- lucide-react
-- socket.io-client
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Tooling
-- npm workspaces
-- `tsx` for server development
-- TypeScript project builds
+## Built With
 
-## Key Features
+- [![Next][Next.js]][Next-url]
+- [![React][React.js]][React-url]
+- [![TypeScript][TypeScript]][TypeScript-url]
+- [![Vercel][Vercel]][Vercel-url]
+- [Recharts](https://recharts.org/)
+- [lucide-react](https://lucide.dev/)
+- Public exchange REST APIs
 
-- Live BTC price snapshots from Binance, Kraken, OKX, Bybit, and Coinbase
-- Arbitrage route detection across exchange pairs
-- Profit calculation with fees, slippage, and latency inputs
-- Risk controls for notional limits, trade frequency, inventory skew, drawdown, and loss streaks
-- Simulated execution with wallet balances, trade history, and PnL tracking
-- Runtime guard and rollout controls for exchange availability and staged operation
-- JSONL persistence for events and snapshots
-- Dashboard views for current route, price board, history, balances, opportunities, and trades
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Screenshots
+
+### Dashboard principal
+
+![Dashboard principal](docs/screenshots/dashboard-desktop.png)
+
+Vista desktop del command center con estado del feed, ruta actual, tablero de precios, profit chart, contador de profit generado, CTA de wallet y estado de riesgo.
+
+### Conexión de wallet
+
+![Modal de conexion de wallet](docs/screenshots/wallet-modal.png)
+
+Popup simulado para elegir entre Phantom, Solflare, Backpack, Glow y Ledger. El flujo no conecta wallets reales.
+
+### Vista mobile
+
+![Vista mobile del dashboard](docs/screenshots/dashboard-mobile.png)
+
+Vista responsive del dashboard con el contenido principal reorganizado para pantallas estrechas.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Getting Started
 
-### Prerequisites
-- Node.js 20 or newer
-- npm 10 or newer
+Estas instrucciones levantan el proyecto localmente con la misma arquitectura usada para Vercel: Next.js + API routes serverless.
 
-### Install
+### Prerequisites
+
+- Node.js 20 o superior
+- npm 10 o superior
+
+Comprueba tus versiones:
+
+```bash
+node --version
+npm --version
+```
+
+### Installation
+
+1. Clona el repositorio.
+
+```bash
+git clone <repository-url>
+cd btc-bot
+```
+
+2. Instala dependencias.
 
 ```bash
 npm install
 ```
 
-### Run both apps
+3. Ejecuta el entorno local.
 
 ```bash
 npm run dev
 ```
 
-### Open the services
-- Web dashboard: `http://localhost:3000`
-- Server health: `http://localhost:4000/health`
-- Server state: `http://localhost:4000/state`
+4. Abre la aplicación.
 
-## Configuration
+```text
+http://localhost:3000
+```
 
-The server runs with defaults, but these environment variables are supported:
+### Optional Configuration
+
+La app funciona sin variables de entorno. Si quieres ajustar la evaluación serverless, puedes definir:
 
 ```bash
-PORT=4000
-WEB_ORIGIN=http://localhost:3000
-POLL_INTERVAL_MS=2000
 MIN_PROFIT=0.01
 MIN_SCORE=20
 MIN_VOLUME_BTC=0.001
 MAX_LATENCY_MS=1000
-SIMULATION_VOLUME_BTC=0.01
-MAX_LIVE_NOTIONAL_USDT=1000
-MAX_TRADES_PER_MINUTE=5
-MAX_RISK_CONSECUTIVE_LOSSES=3
-MAX_RISK_DRAWDOWN_USDT=150
-MAX_INVENTORY_SKEW_RATIO=0.45
-SLO_P95_MARKET_TO_DECISION_MS=1200
-SLO_P95_DECISION_TO_INTENT_MS=250
-SLO_P95_INTENT_TO_RESULT_MS=900
-SLO_BREACH_CONSECUTIVE_LIMIT=2
-EXCHANGE_STALE_ALERT_MS=12000
+SIMULATION_VOLUME_BTC=0.05
+RADAR_FETCH_TIMEOUT_MS=2500
 ```
 
-Execution flags:
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Usage
+
+Comandos principales:
 
 ```bash
-RUNTIME_PROFILE=paper-fast | sandbox-live | live
-EXECUTION_MODE=paper | sandbox | live
-ENABLE_SANDBOX_TRADING=true|false
-ENABLE_LIVE_TRADING=true|false
+npm run dev
+npm run typecheck
+npm run build
 ```
 
-### Web app
+Endpoints locales:
+
+```text
+GET http://localhost:3000/api/state
+GET http://localhost:3000/api/health
+GET http://localhost:3000/api/metrics
+```
+
+`/api/state` devuelve el payload usado por el dashboard:
+
+- `market`: snapshots normalizados por exchange.
+- `opportunities`: rutas de arbitraje ordenadas por score.
+- `trades`: ejecuciones generadas en el ciclo actual.
+- `balances`: balances tras la evaluación.
+- `metrics`: profit generado, trades generados, win rate y conteos por exchange.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Project Structure
+
+```text
+.
+├── apps
+│   ├── server              # legado; no se despliega en Vercel
+│   └── web
+│       ├── app
+│       │   ├── api
+│       │   │   ├── health
+│       │   │   ├── metrics
+│       │   │   └── state
+│       │   ├── globals.css
+│       │   ├── layout.tsx
+│       │   └── page.tsx
+│       ├── lib
+│       │   └── radar.ts
+│       └── package.json
+├── docs
+│   └── screenshots
+├── package.json
+├── package-lock.json
+├── vercel.json
+└── tsconfig.base.json
+```
+
+La lógica activa está en `apps/web/lib/radar.ts`. Ese módulo consulta APIs públicas, arma snapshots, calcula oportunidades y genera métricas para las rutas serverless.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Deployment
+
+El proyecto está preparado para Vercel desde la raíz del repositorio.
+
+Configuración relevante:
+
+- `package.json` usa solo `apps/web` como workspace activo.
+- `npm run build` compila la app web.
+- `vercel.json` define `outputDirectory` como `apps/web/.next`.
+- `.vercelignore` excluye `apps/server`.
+- No se necesita `NEXT_PUBLIC_SERVER_URL`, `PORT`, `WEB_ORIGIN`, Socket.IO ni URL de backend externo.
+
+Pasos recomendados:
+
+1. Importa el repositorio en Vercel.
+2. Usa la raíz del repositorio como root directory.
+3. Deja el build command como `npm run build`.
+4. Despliega.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Roadmap
+
+- [x] Migrar el dashboard a rutas serverless de Next.js.
+- [x] Eliminar la dependencia del backend Express para despliegue.
+- [x] Agregar health, state y metrics como API routes.
+- [ ] Añadir tests automatizados para `apps/web/lib/radar.ts`.
+- [x] Añadir más capturas para mobile y vistas secundarias.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Contributing
+
+1. Crea una rama para tu cambio.
 
 ```bash
-NEXT_PUBLIC_SERVER_URL=http://localhost:4000
+git checkout -b feature/my-change
 ```
 
-## Backend Overview
-
-The server lives in `apps/server/src` and is split into focused modules:
-
-- `exchanges/`: market connectors for Binance, Kraken, OKX, Bybit, and Coinbase
-- `services/marketData.ts`: orchestrates connectors, bootstraps fallback snapshots, and normalizes market state
-- `engine/`: opportunity detection, arbitrage logic, scoring, and profit calculation
-- `risk/`: pre-trade checks, drawdown tracking, loss streak tracking, and kill switch state
-- `execution/`: IOC-style execution lifecycle and simulated trade application
-- `simulator/`: balances, PnL series, trades, and replay-friendly in-memory state
-- `persistence/`: JSONL event and snapshot storage
-- `telemetry/`: metrics and runtime signals
-- `rollout/`: staged readiness policy and preflight checks
-- `guard/`: runtime protection and exchange gating
-
-### Main backend APIs
-
-- `GET /health`
-- `GET /health/deep`
-- `GET /metrics`
-- `GET /state`
-- `GET /risk/state`
-- `POST /risk/kill-switch`
-- `DELETE /risk/kill-switch`
-- `GET /replay/events`
-- `GET /replay/snapshots`
-- `GET /guard/state`
-- `POST /guard/alerts`
-- `DELETE /guard/alerts`
-- `GET /rollout/stage`
-- `POST /rollout/stage`
-- `GET /rollout/preflight`
-
-## Frontend Overview
-
-The web app lives in `apps/web/app` and renders the operator view:
-
-- The main page subscribes to Socket.IO updates and fetches `/api/state` as a fallback
-- The current route panel shows the active buy/sell path and route history
-- The price board compares all supported exchanges
-- The dashboard surfaces PnL, balances, opportunities, and trade history
-- The layout is tuned for dense scanning rather than a marketing-style landing page
-
-## Development Workflow
-
-```bash
-npm run dev         # run server and web together
-npm run build       # build server, then web
-npm run typecheck   # typecheck both apps
-npm run lint        # lint the web app
-```
-
-Package-level commands:
-
-```bash
-npm --workspace apps/server run dev
-npm --workspace apps/server run build
-npm --workspace apps/server run typecheck
-
-npm --workspace apps/web run dev
-npm --workspace apps/web run build
-npm --workspace apps/web run typecheck
-npm --workspace apps/web run lint
-```
-
-The server writes event and snapshot history to `apps/server/data/events.jsonl` and `apps/server/data/snapshots.jsonl`. Those files are used for replay and cold-start recovery.
-
-## Testing and Verification
-
-There is no dedicated test suite in the repository snapshot. The practical verification path is:
+2. Valida tipos y build.
 
 ```bash
 npm run typecheck
 npm run build
 ```
 
-For runtime checks, use:
+3. Abre un pull request con una descripción clara del cambio y capturas si afecta la UI.
 
-```bash
-curl http://localhost:4000/health
-curl http://localhost:4000/state
-curl http://localhost:4000/health/deep
-```
-
-## Data Model
-
-The core domain types are defined in `apps/server/src/types.ts`:
-
-- `MarketSnapshot`: best bid/ask, sizes, timestamp, and source
-- `Opportunity`: route, expected profit, fees, slippage, latency, score, and status
-- `Trade`: executed simulation result and realized net profit
-- `WalletBalance`: per-exchange BTC and USDT balances
-- `RadarState`: the combined market, opportunities, trades, balances, and metrics payload used by the dashboard
-
-## Contributing
-
-When making changes, keep the modules focused and the data flow explicit:
-
-- update market ingestion in `services/marketData.ts` and the relevant exchange connector
-- update opportunity math in `engine/`
-- update execution behavior in `execution/`
-- update safety logic in `risk/`
-- update dashboard rendering in `apps/web/app/page.tsx` and `apps/web/app/globals.css`
-
-Use the existing code style as the reference. The repo favors small, typed modules and direct data flow over broad abstraction.
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## License
 
-No license file is present in this repository snapshot.
+No hay archivo de licencia en este snapshot del repositorio.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Acknowledgments
+
+- Estructura inspirada en [Best-README-Template](https://github.com/othneildrew/Best-README-Template).
+- Next.js App Router y API routes para el runtime serverless.
+- APIs públicas de Binance, Kraken, OKX, Bybit y Coinbase.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+[product-screenshot]: docs/screenshots/dashboard-desktop.png
+[Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
+[Next-url]: https://nextjs.org/
+[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
+[React-url]: https://react.dev/
+[TypeScript]: https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white
+[TypeScript-url]: https://www.typescriptlang.org/
+[Vercel]: https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white
+[Vercel-url]: https://vercel.com/

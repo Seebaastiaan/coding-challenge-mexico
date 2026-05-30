@@ -3,19 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "workspaces": [
-    "apps/server",
     "apps/web"
   ],
   "scripts": {
-    "dev": "concurrently \"npm:dev:server\" \"npm:dev:web\"",
-    "dev:server": "npm --workspace apps/server run dev",
+    "dev": "npm --workspace apps/web run dev",
     "dev:web": "npm --workspace apps/web run dev",
-    "build": "npm --workspace apps/server run build && npm --workspace apps/web run build",
-    "typecheck": "npm --workspace apps/server run typecheck && npm --workspace apps/web run typecheck",
-    "lint": "npm --workspace apps/web run lint"
+    "build": "npm --workspace apps/web run build",
+    "typecheck": "npm --workspace apps/web run typecheck"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
     "typescript": "^5.9.3"
   }
 }

@@ -6,22 +6,26 @@ import {
   BadgeCheck,
   Ban,
   ChevronDown,
+  CheckCircle2,
   CircleAlert,
   CircleDollarSign,
   Clock3,
   Coins,
   Gauge,
   Landmark,
+  LoaderCircle,
   PauseCircle,
   Radar,
   RefreshCcw,
   ShieldAlert,
   ShieldCheck,
   TrendingUp,
+  Wallet,
   WalletCards,
   Waves,
+  X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -31,10 +35,18 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { io, type Socket } from "socket.io-client";
 
 type ExchangeName = "Binance" | "Kraken" | "OKX" | "Bybit" | "Coinbase";
 type OpportunityStatus = "detected" | "executed" | "ignored" | "observed";
+type WalletConnectionStatus = "idle" | "connecting" | "connected";
+
+type WalletOption = {
+  name: string;
+  network: string;
+  address: string;
+  accent: string;
+  logo: string;
+};
 
 type MarketSnapshot = {
   exchange: ExchangeName;
@@ -89,8 +101,9 @@ type RadarState = {
   balances: WalletBalance[];
   metrics: {
     cumulativePnl: number;
+    totalProfitGenerated: number;
     opportunitiesDetected: number;
-    tradesSimulated: number;
+    tradesGenerated: number;
     winRate: number;
     averageProfit: number;
     bestTrade: number;
@@ -103,14 +116,49 @@ type RadarState = {
   updatedAt: string;
 };
 
-const SERVER_URL =
-  process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:4000";
 const SUPPORTED_EXCHANGES: ExchangeName[] = [
   "Binance",
   "Kraken",
   "OKX",
   "Bybit",
   "Coinbase",
+];
+const walletOptions: WalletOption[] = [
+  {
+    name: "Phantom",
+    network: "Solana",
+    address: "7hQ9...Lx2P",
+    accent: "#7c3aed",
+    logo: "/wallets/phantom.svg",
+  },
+  {
+    name: "Solflare",
+    network: "Solana",
+    address: "9Kx4...P7mA",
+    accent: "#f97316",
+    logo: "/wallets/solflare.svg",
+  },
+  {
+    name: "Backpack",
+    network: "Solana x EVM",
+    address: "2zN8...Qk44",
+    accent: "#dc2626",
+    logo: "/wallets/backpack.png",
+  },
+  {
+    name: "Glow",
+    network: "Solana",
+    address: "E2p9...Tn81",
+    accent: "#0ea5e9",
+    logo: "/wallets/glow.png",
+  },
+  {
+    name: "Ledger",
+    network: "Hardware",
+    address: "H8m2...R5c9",
+    accent: "#0f172a",
+    logo: "/wallets/ledger.svg",
+  },
 ];
 
 const emptyState: RadarState = {
@@ -120,8 +168,9 @@ const emptyState: RadarState = {
   balances: [],
   metrics: {
     cumulativePnl: 0,
+    totalProfitGenerated: 0,
     opportunitiesDetected: 0,
-    tradesSimulated: 0,
+    tradesGenerated: 0,
     winRate: 0,
     averageProfit: 0,
     bestTrade: 0,
@@ -175,7 +224,7 @@ function statusClass(status: OpportunityStatus) {
 function statusLabel(status: OpportunityStatus) {
   const labels: Record<OpportunityStatus, string> = {
     detected: "Detected",
-    executed: "Simulated",
+    executed: "Executed",
     ignored: "Skipped",
     observed: "Watching",
   };
@@ -203,13 +252,13 @@ function decisionCopy(opportunity?: Opportunity) {
       eyebrow: "Waiting for data",
       title: "No trade yet",
       detail:
-        "The simulator needs a visible price gap before it can compare risk and profit.",
+        "The engine needs a visible price gap before it can compare risk and profit.",
     };
   }
 
   if (opportunity.status === "executed") {
     return {
-      eyebrow: "Trade simulated",
+      eyebrow: "Trade executed",
       title: "Passed every safety check",
       detail:
         "The spread survived fees, slippage, latency, liquidity, and score thresholds.",
@@ -230,7 +279,7 @@ function decisionCopy(opportunity?: Opportunity) {
       eyebrow: "Watch only",
       title: "Interesting, not clean enough",
       detail:
-        "The spread is visible, but the simulator is still waiting for a stronger setup.",
+        "The spread is visible, but the engine is still waiting for a stronger setup.",
     };
   }
 
@@ -238,7 +287,7 @@ function decisionCopy(opportunity?: Opportunity) {
     eyebrow: "Trade skipped",
     title: "Blocked by risk controls",
     detail:
-      "The visible spread was not enough after the simulator subtracted costs and risk.",
+      "The visible spread was not enough after costs and risk were subtracted.",
   };
 }
 
@@ -299,31 +348,24 @@ export default function DashboardPage() {
   const [state, setState] = useState<RadarState>(emptyState);
   const [connected, setConnected] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [walletStatus, setWalletStatus] =
+    useState<WalletConnectionStatus>("idle");
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [selectedWallet, setSelectedWallet] = useState<WalletOption | null>(
+    null,
+  );
+  const [connectingWallet, setConnectingWallet] = useState<string | null>(null);
 
   useEffect(() => {
-    let socket: Socket | null = null;
     let active = true;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
 
     async function fetchRadarState() {
-      const directUrl = `${SERVER_URL}/state`;
-      const proxiedUrl = "/api/state";
-
-      try {
-        const response = await fetch(directUrl, { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error(`Server returned ${response.status}`);
-        }
-        return (await response.json()) as RadarState;
-      } catch (directError) {
-        const response = await fetch(proxiedUrl, { cache: "no-store" });
-        if (!response.ok) {
-          throw directError instanceof Error
-            ? directError
-            : new Error(`Server returned ${response.status}`);
-        }
-        return (await response.json()) as RadarState;
+      const response = await fetch("/api/state", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Serverless route returned ${response.status}`);
       }
+      return (await response.json()) as RadarState;
     }
 
     async function loadState() {
@@ -349,37 +391,49 @@ export default function DashboardPage() {
       void loadState();
     }, 2_000);
 
-    socket = io(SERVER_URL, {
-      transports: ["websocket", "polling"],
-    });
-
-    socket.on("connect", () => {
-      setConnected(true);
-      setLastError(null);
-    });
-
-    socket.on("disconnect", () => {
-      setConnected(false);
-    });
-
-    socket.on("connect_error", (error) => {
-      setConnected(false);
-      setLastError(error.message);
-    });
-
-    socket.on("radar:update", (payload: RadarState) => {
-      setState(payload);
-      setLastError(null);
-    });
-
     return () => {
       active = false;
       if (pollTimer) {
         clearInterval(pollTimer);
       }
-      socket?.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    if (!walletModalOpen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setWalletModalOpen(false);
+      }
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [walletModalOpen]);
+
+  function connectWallet(wallet: WalletOption) {
+    setWalletStatus("connecting");
+    setConnectingWallet(wallet.name);
+    window.setTimeout(() => {
+      setSelectedWallet(wallet);
+      setWalletStatus("connected");
+      setConnectingWallet(null);
+      setWalletModalOpen(false);
+    }, 700);
+  }
+
+  function disconnectWallet() {
+    setSelectedWallet(null);
+    setWalletStatus("idle");
+    setConnectingWallet(null);
+  }
 
   const bestOpportunity = state.opportunities[0];
   const profitChart = useMemo(() => {
@@ -413,7 +467,7 @@ export default function DashboardPage() {
           })),
         label: "Estimated profit",
         kicker: "Signal estimates",
-        badge: "No simulated trades yet",
+        badge: "No generated trades yet",
       };
     }
 
@@ -523,6 +577,9 @@ export default function DashboardPage() {
         },
       ]
     : [];
+  const walletButtonLabel = selectedWallet
+    ? `Connected to ${selectedWallet.name} simulated wallet`
+    : "Open simulated wallet connection modal";
 
   return (
     <main className="shell">
@@ -546,6 +603,32 @@ export default function DashboardPage() {
               <RefreshCcw size={15} aria-hidden />
               Updated {time(state.updatedAt)}
             </span>
+            <span className="connection online">
+              <CircleDollarSign size={16} aria-hidden />
+              Profit {money(state.metrics.totalProfitGenerated)}
+            </span>
+            <button
+              aria-label={walletButtonLabel}
+              aria-haspopup="dialog"
+              className={`wallet-launcher wallet-${walletStatus}`}
+              onClick={() => setWalletModalOpen(true)}
+              type="button"
+            >
+              <span className="wallet-launcher-icon">
+                {selectedWallet ? (
+                  <img src={selectedWallet.logo} alt="" aria-hidden />
+                ) : (
+                  <Wallet size={18} aria-hidden />
+                )}
+              </span>
+              <span className="wallet-launcher-copy">
+                <strong>
+                  {selectedWallet ? selectedWallet.name : "Connect Wallet"}
+                </strong>
+                {selectedWallet ? <em>{selectedWallet.address}</em> : null}
+              </span>
+              <small>Demo</small>
+            </button>
             <span
               className={paused ? "connection offline" : "connection ready"}
             >
@@ -554,6 +637,115 @@ export default function DashboardPage() {
             </span>
           </div>
         </header>
+
+        {walletModalOpen ? (
+          <div
+            aria-labelledby="wallet-modal-title"
+            aria-modal="true"
+            className="wallet-modal-backdrop"
+            onClick={() => setWalletModalOpen(false)}
+            role="dialog"
+          >
+            <div
+              className="wallet-modal"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="wallet-modal-head">
+                <div>
+                  <span className="kicker">Simulated wallet access</span>
+                  <h2 id="wallet-modal-title">Connect a wallet</h2>
+                </div>
+                <button
+                  aria-label="Close wallet connection modal"
+                  className="wallet-close"
+                  onClick={() => setWalletModalOpen(false)}
+                  type="button"
+                >
+                  <X size={18} aria-hidden />
+                </button>
+              </div>
+
+              <div className="wallet-modal-status">
+                <Wallet size={19} aria-hidden />
+                <div>
+                  <strong>
+                    {selectedWallet
+                      ? `${selectedWallet.name} connected`
+                      : "Choose your wallet"}
+                  </strong>
+                  <span>
+                    {selectedWallet
+                      ? `${selectedWallet.address} on ${selectedWallet.network}`
+                      : "This is a simulated connection flow for the dashboard demo."}
+                  </span>
+                </div>
+              </div>
+
+              <div className="wallet-options">
+                {walletOptions.map((wallet) => {
+                  const isConnected = selectedWallet?.name === wallet.name;
+                  const isConnecting =
+                    walletStatus === "connecting" &&
+                    connectingWallet === wallet.name;
+
+                  return (
+                    <button
+                      className={`wallet-option ${isConnected ? "selected" : ""}`}
+                      disabled={isConnecting}
+                      key={wallet.name}
+                      onClick={() => connectWallet(wallet)}
+                      style={
+                        {
+                          "--wallet-accent": wallet.accent,
+                        } as CSSProperties
+                      }
+                      type="button"
+                    >
+                  <span className="wallet-option-mark">
+                        <img src={wallet.logo} alt={`${wallet.name} logo`} />
+                      </span>
+                      <span className="wallet-option-copy">
+                        <strong>{wallet.name}</strong>
+                        <small>{wallet.network}</small>
+                      </span>
+                      <span className="wallet-option-action">
+                        {isConnecting ? (
+                          <LoaderCircle
+                            className="wallet-spinner"
+                            size={17}
+                            aria-hidden
+                          />
+                        ) : isConnected ? (
+                          <CheckCircle2 size={18} aria-hidden />
+                        ) : (
+                          "Connect"
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="wallet-modal-actions">
+                <button
+                  className="wallet-secondary-action"
+                  disabled={!selectedWallet}
+                  onClick={disconnectWallet}
+                  type="button"
+                >
+                  Disconnect
+                </button>
+                <button
+                  className="wallet-primary-action"
+                  onClick={() => setWalletModalOpen(false)}
+                  type="button"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {lastError ? (
           <div className="notice">
@@ -581,7 +773,7 @@ export default function DashboardPage() {
             <p>{decision.detail}</p>
             <div className="ops-result">
               <span>
-                {tone === "skip" ? "Blocked estimate" : "Expected result"}
+                {tone === "skip" ? "Blocked profit" : "Route profit"}
               </span>
               <strong
                 className={
@@ -746,10 +938,10 @@ export default function DashboardPage() {
         <section className="metrics-grid ops-metrics">
           <StatTile
             icon={<CircleDollarSign size={22} aria-hidden />}
-            label="Total simulated profit"
-            value={money(state.metrics.cumulativePnl)}
+            label="Total profit generated"
+            value={money(state.metrics.totalProfitGenerated)}
             caption={`Average trade ${money(state.metrics.averageProfit)}`}
-            tone={state.metrics.cumulativePnl >= 0 ? "good" : "bad"}
+            tone={state.metrics.totalProfitGenerated >= 0 ? "good" : "bad"}
           />
           <StatTile
             icon={<Gauge size={22} aria-hidden />}
@@ -763,8 +955,8 @@ export default function DashboardPage() {
           />
           <StatTile
             icon={<WalletCards size={22} aria-hidden />}
-            label="Trades simulated"
-            value={number(state.metrics.tradesSimulated, 0)}
+            label="Trades generated"
+            value={number(state.metrics.tradesGenerated, 0)}
             caption={`Best result ${money(state.metrics.bestTrade)}`}
           />
           <StatTile
@@ -862,10 +1054,10 @@ export default function DashboardPage() {
         <div className="balances-panel">
           <div className="section-title">
             <div>
-              <span className="kicker">Fictitious wallet</span>
+              <span className="kicker">Exchange ledger</span>
               <h2>Balances</h2>
             </div>
-            <span>Simulation</span>
+            <span>Live ledger</span>
           </div>
           <div className="balance-list">
             {state.balances.map((balance) => (
@@ -947,8 +1139,8 @@ export default function DashboardPage() {
       <section className="table-panel final-table">
         <div className="section-title">
           <div>
-            <span className="kicker">Executed by simulator</span>
-            <h2>Simulated trades</h2>
+            <span className="kicker">Generated executions</span>
+            <h2>Trade ledger</h2>
           </div>
           <span>Best {money(state.metrics.bestTrade)}</span>
         </div>
@@ -980,7 +1172,7 @@ export default function DashboardPage() {
               {!state.trades.length ? (
                 <tr>
                   <td colSpan={4} className="empty-cell">
-                    No simulated trades yet
+                    No generated trades yet
                   </td>
                 </tr>
               ) : null}
